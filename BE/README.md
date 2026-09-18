@@ -36,6 +36,7 @@ the matching endpoint answers `503` with a clear message):
 | `OPENROUTER_API_KEY` | AI reply suggestion through OpenRouter |
 | `OPENROUTER_MODEL` | Model id, default `nvidia/nemotron-3.5-lightning:free` |
 | `OPENROUTER_REASONING` | `true` (default) sends `"reasoning": {"enabled": true}`; `false` answers faster |
+| `OPENROUTER_REASONING_EFFORT` | Reasoning budget: `low` (default), `medium`, `high` |
 | `MAIL_USERNAME` | Gmail address: sender **and** recipient of every stats email |
 | `MAIL_PASSWORD` | Google App Password for that address (not the account password) |
 
@@ -99,7 +100,9 @@ too: a low limit is faster but the model may be cut off, which answers `502`.
 The suggestion is **never stored**: the endpoint only reads, and the text goes back to the
 client, which puts it in the composer. The user edits it and sends it like any other
 message, through the WebSocket channel. Errors: `503` without `OPENROUTER_API_KEY`, `502` when
-OpenRouter fails, times out (90 s) or cuts the answer at `max_tokens`. With reasoning on,
+OpenRouter fails, times out (90 s) or cuts the answer at `max_tokens`. Reasoning is
+sent as `{"effort": "low"}`: without a budget the free model can reason until it runs out
+of tokens. A reply cut at `max_tokens` is retried once with reasoning off. With reasoning on,
 the free model can take 15–60 s to answer; only `message.content` is used, the thinking is discarded.
 
 ### Account stats by email

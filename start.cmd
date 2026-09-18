@@ -16,7 +16,7 @@ rem Read from .env when present. That file is git-ignored, so no secret is commi
 rem Only the known names are exported; the backend window inherits them.
 if exist ".env" (
   for /f "usebackq eol=# tokens=1,* delims==" %%a in (".env") do (
-    for %%k in (DB_USERNAME DB_PASSWORD MAIL_USERNAME MAIL_PASSWORD OPENROUTER_API_KEY OPENROUTER_MODEL OPENROUTER_REASONING) do (
+    for %%k in (DB_USERNAME DB_PASSWORD MAIL_USERNAME MAIL_PASSWORD OPENROUTER_API_KEY OPENROUTER_MODEL OPENROUTER_REASONING OPENROUTER_REASONING_EFFORT) do (
       if /i "%%a"=="%%k" set "%%k=%%b"
     )
   )
