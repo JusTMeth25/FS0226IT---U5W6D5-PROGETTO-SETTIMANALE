@@ -70,6 +70,18 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 			""")
 	List<Message> findUndelivered(@Param("me") Long me);
 
+	long countBySenderId(Long senderId);
+
+	long countByRecipientId(Long recipientId);
+
+	/** How many people the user has exchanged at least one message with, in either direction. */
+	@Query("""
+			SELECT COUNT(DISTINCT CASE WHEN m.sender.id = :me THEN m.recipient.id ELSE m.sender.id END)
+			FROM Message m
+			WHERE m.sender.id = :me OR m.recipient.id = :me
+			""")
+	long countConversations(@Param("me") Long me);
+
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("UPDATE Message m SET m.readAt = :now WHERE m.id IN :ids AND m.readAt IS NULL")
 	int markReadByIds(@Param("ids") List<Long> ids, @Param("now") Instant now);

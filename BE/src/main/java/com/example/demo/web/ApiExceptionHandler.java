@@ -4,6 +4,8 @@ import com.example.demo.dto.ApiError;
 import com.example.demo.exception.BadRequestException;
 import com.example.demo.exception.ConflictException;
 import com.example.demo.exception.NotFoundException;
+import com.example.demo.exception.ServiceUnavailableException;
+import com.example.demo.exception.UpstreamException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,20 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(BadRequestException.class)
 	public ResponseEntity<ApiError> handleBadRequest(BadRequestException exception) {
 		return build(HttpStatus.BAD_REQUEST, exception.getMessage());
+	}
+
+	@ExceptionHandler(ServiceUnavailableException.class)
+	public ResponseEntity<ApiError> handleUnavailable(ServiceUnavailableException exception) {
+		return build(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
+	}
+
+	/** The cause stays in the log; the client only gets the readable message. */
+	@ExceptionHandler(UpstreamException.class)
+	public ResponseEntity<ApiError> handleUpstream(UpstreamException exception) {
+		if (exception.getCause() != null) {
+			log.warn("Upstream failure: {}", exception.getCause().toString());
+		}
+		return build(HttpStatus.BAD_GATEWAY, exception.getMessage());
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

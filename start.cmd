@@ -11,14 +11,19 @@ rem ---- tools ----
 where java >nul 2>&1 || (echo  [X] Java not found on PATH. Install a JDK 25 and try again. & goto :fail)
 where npm  >nul 2>&1 || (echo  [X] npm not found on PATH. Install Node.js and try again. & goto :fail)
 
-rem ---- database credentials ----
-rem Read from .env when present. That file is git-ignored, so no password is committed.
+rem ---- credentials and keys ----
+rem Read from .env when present. That file is git-ignored, so no secret is committed.
+rem Only the known names are exported; the backend window inherits them.
 if exist ".env" (
   for /f "usebackq eol=# tokens=1,* delims==" %%a in (".env") do (
-    if /i "%%a"=="DB_USERNAME" set "DB_USERNAME=%%b"
-    if /i "%%a"=="DB_PASSWORD" set "DB_PASSWORD=%%b"
+    for %%k in (DB_USERNAME DB_PASSWORD MAIL_USERNAME MAIL_PASSWORD OPENROUTER_API_KEY OPENROUTER_MODEL OPENROUTER_REASONING) do (
+      if /i "%%a"=="%%k" set "%%k=%%b"
+    )
   )
 )
+
+if "%MAIL_USERNAME%"=="" echo  [i] MAIL_USERNAME not set: the stats email is disabled.
+if "%OPENROUTER_API_KEY%"=="" echo  [i] OPENROUTER_API_KEY not set: the AI suggestion is disabled.
 
 if "%DB_USERNAME%"=="" set "DB_USERNAME=postgres"
 

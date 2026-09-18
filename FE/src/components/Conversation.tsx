@@ -15,13 +15,14 @@ type Props = {
   canSend: boolean
   partnerOnline: boolean
   onSend: (content: string) => void
+  onSuggest: () => Promise<string | null>
   onBack: () => void
 }
 
 /** Distance from the bottom under which the view follows new messages. */
 const STICKY_PX = 120
 
-export function Conversation({ me, partner, messages, pending, loading, canSend, partnerOnline, onSend, onBack }: Props) {
+export function Conversation({ me, partner, messages, pending, loading, canSend, partnerOnline, onSend, onSuggest, onBack }: Props) {
   const scroller = useRef<HTMLDivElement>(null)
   const [atBottom, setAtBottom] = useState(true)
 
@@ -122,7 +123,14 @@ export function Conversation({ me, partner, messages, pending, loading, canSend,
         </button>
       )}
 
-      <Composer recipientName={partner.displayName} disabled={!canSend} onSend={onSend} />
+      {/* Keyed by partner: a draft or a pending suggestion never moves to another chat. */}
+      <Composer
+        key={partner.username}
+        recipientName={partner.displayName}
+        disabled={!canSend}
+        onSend={onSend}
+        onSuggest={onSuggest}
+      />
     </section>
   )
 }

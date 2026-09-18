@@ -5,7 +5,7 @@ import { formatStamp } from '../lib/format.ts'
 import { lastOf } from '../lib/conversations.ts'
 import type { Threads } from '../lib/conversations.ts'
 import { Avatar } from './Avatar.tsx'
-import { LogoutIcon, MoonIcon, SearchIcon, SunIcon } from './Icons.tsx'
+import { ChartIcon, GearIcon, LogoutIcon, MoonIcon, SearchIcon, SunIcon } from './Icons.tsx'
 
 type Props = {
   me: User
@@ -18,6 +18,8 @@ type Props = {
   theme: 'dark' | 'light'
   onSelect: (username: string) => void
   onToggleTheme: () => void
+  onOpenStats: () => void
+  onOpenSettings: () => void
   onLogout: () => void
 }
 
@@ -69,6 +71,12 @@ export function Sidebar(props: Props) {
           </div>
         </div>
         <div className="sidebar-actions">
+          <button type="button" onClick={props.onOpenStats} title="Statistiche" aria-label="Le tue statistiche">
+            <ChartIcon />
+          </button>
+          <button type="button" onClick={props.onOpenSettings} title="Impostazioni" aria-label="Impostazioni">
+            <GearIcon />
+          </button>
           <button
             type="button"
             onClick={props.onToggleTheme}

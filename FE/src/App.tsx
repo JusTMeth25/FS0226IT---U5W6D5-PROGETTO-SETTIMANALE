@@ -3,7 +3,9 @@ import { ApiError, api } from './api/client.ts'
 import type { Message, PendingMessage, PresenceEvent, ReceiptUpdate, User } from './api/types.ts'
 import { AuthScreen } from './components/AuthScreen.tsx'
 import { Conversation } from './components/Conversation.tsx'
+import { SettingsPanel } from './components/SettingsPanel.tsx'
 import { Sidebar } from './components/Sidebar.tsx'
+import { StatsPanel } from './components/StatsPanel.tsx'
 import { useChatSocket } from './hooks/useChatSocket.ts'
 import { applyReceipt, mergeIntoThreads, mergeMessages, partnerOf } from './lib/conversations.ts'
 import type { Threads } from './lib/conversations.ts'
@@ -24,6 +26,8 @@ export default function App() {
   const [loadingThread, setLoadingThread] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [theme, setTheme] = useState<Theme>(storedTheme)
+  const [statsOpen, setStatsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Read inside the socket callback, which must not be recreated on every render.
   const selectedRef = useRef<string | null>(null)
@@ -186,6 +190,21 @@ export default function App() {
     [selected, socket],
   )
 
+  // The suggestion goes to the composer only; the server does not store it.
+  const suggest = useCallback(async () => {
+    if (!selected) return null
+    try {
+      const { suggestion } = await api.suggestion(selected)
+      return suggestion
+    } catch (cause) {
+      setToast(cause instanceof ApiError ? cause.message : 'Suggerimento non disponibile')
+      return null
+    }
+  }, [selected])
+
+  const closeStats = useCallback(() => setStatsOpen(false), [])
+  const closeSettings = useCallback(() => setSettingsOpen(false), [])
+
   const logout = useCallback(async () => {
     await api.logout().catch(() => undefined)
     setMe(null)
@@ -195,6 +214,8 @@ export default function App() {
     setUnread({})
     setOnline(new Set())
     setSelected(null)
+    setStatsOpen(false)
+    setSettingsOpen(false)
     knownContacts.current = new Set()
   }, [])
 
@@ -224,6 +245,8 @@ export default function App() {
         theme={theme}
         onSelect={openConversation}
         onToggleTheme={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+        onOpenStats={() => setStatsOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
         onLogout={logout}
       />
 
@@ -237,6 +260,7 @@ export default function App() {
           canSend={socket.state === 'connected'}
           partnerOnline={online.has(partner.username)}
           onSend={send}
+          onSuggest={suggest}
           onBack={() => setSelected(null)}
         />
       ) : (
@@ -250,6 +274,9 @@ export default function App() {
           </p>
         </section>
       )}
+
+      {statsOpen && <StatsPanel onClose={closeStats} onNotice={setToast} />}
+      {settingsOpen && <SettingsPanel onClose={closeSettings} onNotice={setToast} />}
 
       {toast && (
         <div className="toast" role="status">

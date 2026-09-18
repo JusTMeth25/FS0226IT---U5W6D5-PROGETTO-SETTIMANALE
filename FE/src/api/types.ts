@@ -46,6 +46,33 @@ export type ConversationSummary = {
   unreadCount: number
 }
 
+/** Figures of the current account; conversations = people with at least one message. */
+export type AccountStats = {
+  username: string
+  displayName: string
+  sent: number
+  received: number
+  conversations: number
+  generatedAt: string
+}
+
+/** Proposed next message. Never stored by the server. */
+export type SuggestionResponse = {
+  suggestion: string
+}
+
+/** Per-user AI token limit, with the range allowed by the server. */
+export type UserSettings = {
+  aiMaxTokens: number
+  defaultMaxTokens: number
+  minMaxTokens: number
+  maxMaxTokens: number
+}
+
+export type StatsEmailResponse = {
+  sentTo: string
+}
+
 export type ApiErrorBody = {
   status: number
   error: string

@@ -28,6 +28,17 @@ $env:DB_PASSWORD = "<your password>"
 DB_PASSWORD='<your password>' ./mvnw spring-boot:run
 ```
 
+Optional variables, each enabling one feature (the application starts without them, and
+the matching endpoint answers `503` with a clear message):
+
+| Variable | Used for |
+| --- | --- |
+| `OPENROUTER_API_KEY` | AI reply suggestion through OpenRouter |
+| `OPENROUTER_MODEL` | Model id, default `nvidia/nemotron-3.5-lightning:free` |
+| `OPENROUTER_REASONING` | `true` (default) sends `"reasoning": {"enabled": true}`; `false` answers faster |
+| `MAIL_USERNAME` | Gmail address: sender **and** recipient of every stats email |
+| `MAIL_PASSWORD` | Google App Password for that address (not the account password) |
+
 Starting without `DB_PASSWORD` fails fast with
 `Could not resolve placeholder 'DB_PASSWORD'`.
 
@@ -47,6 +58,11 @@ The application listens on `http://localhost:8080`. Hibernate creates the `app_u
 | `GET` | `/api/messages/{username}` | session | The stored conversation with that user, in server order. |
 | `POST` | `/api/messages/{username}/read` | session | Marks as read every message received from that user. Returns `204` and pushes a READ receipt to the author. |
 | `GET` | `/api/presence` | session | Who has an open channel right now. The channel keeps it up to date afterwards. |
+| `POST` | `/api/ai/suggestion/{username}` | session | AI proposal for the next message to that user: `{"suggestion": "..."}`. Nothing is stored. |
+| `GET` | `/api/settings/me` | session | The user's AI token limit with the allowed range: `{aiMaxTokens, defaultMaxTokens, minMaxTokens, maxMaxTokens}`. |
+| `PUT` | `/api/settings/me` | session | Body `{"aiMaxTokens": 800}` sets the limit (`400` outside the range); `null` resets it to the default. |
+| `GET` | `/api/stats/me` | session | Account stats: `{username, displayName, sent, received, conversations, generatedAt}`. |
+| `POST` | `/api/stats/me/email` | session | Emails the stats (Thymeleaf template) to `MAIL_USERNAME`. Returns `202` + `{"sentTo": "..."}`. |
 
 Every other request without a valid session returns `401` with a JSON body.
 
@@ -63,6 +79,38 @@ survives a reload or a new sign in; it is not kept in the client.
 `findLatestPerConversation` (the highest message id per partner) and
 `countUnreadBySender`. It exists so the client does not have to request one history per
 contact just to draw the list.
+
+### AI reply suggestion
+
+`SuggestionService` reads the last 20 messages of the conversation (`openrouter.context-messages`)
+through `ChatService.history` and sends them to the OpenRouter chat completions endpoint
+(`OpenRouterClient`, a plain `RestClient`, OpenAI format). The current user's messages are
+the `assistant` turns and the partner's are the `user` turns, so the model writes as the
+current user. The system prompt asks for one short message in the tone of the conversation. The language
+follows the current user: the one they write their own messages in, even when the other
+person uses another language. If they have not written yet, it follows the other person;
+an empty conversation gets an opening line in Italian.
+
+Each user sets the `max_tokens` of their suggestions in the settings panel. The value is
+stored in `app_user.ai_max_tokens` (null = default) and must stay within
+`openrouter.max-tokens.min`/`max` (1000–4000, default 1500). It counts the reasoning tokens
+too: a low limit is faster but the model may be cut off, which answers `502`.
+
+The suggestion is **never stored**: the endpoint only reads, and the text goes back to the
+client, which puts it in the composer. The user edits it and sends it like any other
+message, through the WebSocket channel. Errors: `503` without `OPENROUTER_API_KEY`, `502` when
+OpenRouter fails, times out (90 s) or cuts the answer at `max_tokens`. With reasoning on,
+the free model can take 15–60 s to answer; only `message.content` is used, the thinking is discarded.
+
+### Account stats by email
+
+`StatsService` counts, for the current user, the messages sent, the messages received and
+the open chats — the distinct people with at least one message in either direction
+(`MessageRepository.countConversations`). `MailService` renders
+`templates/mail/account-stats.html` with Thymeleaf (inline styles, table layout, so email
+clients keep it) and sends it over Gmail SMTP (`smtp.gmail.com:587`, STARTTLS).
+Every stats email goes to `MAIL_USERNAME`, whichever user asks for it. Errors: `503`
+without `MAIL_USERNAME`, `502` when the SMTP server refuses the credentials or fails.
 
 ## WebSocket channel
 
@@ -140,8 +188,10 @@ are kept for 14 days. `logs/` is git-ignored.
   | `WS_DISCONNECT` | `username`, `sessionId`, `wentOffline` |
   | `MSG_SENT` | `messageId`, `sender`, `recipient` |
   | `MSG_DELIVERED`, `MSG_READ` | `messageIds`, `count`, `sender`, `recipient` |
+  | `AI_SUGGESTION` | `username`, `partner` |
+  | `STATS_EMAILED` | `username` |
 
-Only metadata is logged: never message content, never passwords.
+Only metadata is logged: never message content, never AI suggestions, never passwords.
 
 ## Security notes
 

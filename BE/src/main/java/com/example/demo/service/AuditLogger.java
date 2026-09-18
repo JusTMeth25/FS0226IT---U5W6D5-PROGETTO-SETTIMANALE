@@ -74,6 +74,18 @@ public class AuditLogger {
 				.log("Messages read");
 	}
 
+	/** The suggested text is not logged, like any message content. */
+	public void aiSuggestion(String username, String partner) {
+		event("AI_SUGGESTION")
+				.addKeyValue("username", username)
+				.addKeyValue("partner", partner)
+				.log("Reply suggested");
+	}
+
+	public void statsEmailed(String username) {
+		event("STATS_EMAILED").addKeyValue("username", username).log("Account stats emailed");
+	}
+
 	private LoggingEventBuilder event(String name) {
 		return log.atInfo().addKeyValue("event", name);
 	}

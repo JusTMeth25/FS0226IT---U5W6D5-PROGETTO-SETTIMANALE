@@ -1,4 +1,13 @@
-import type { ApiErrorBody, ConversationSummary, Message, User } from './types.ts'
+import type {
+  AccountStats,
+  ApiErrorBody,
+  ConversationSummary,
+  Message,
+  StatsEmailResponse,
+  SuggestionResponse,
+  User,
+  UserSettings,
+} from './types.ts'
 
 export class ApiError extends Error {
   readonly status: number
@@ -58,4 +67,23 @@ export const api = {
 
   markRead: (username: string) =>
     request<void>(`/api/messages/${encodeURIComponent(username)}/read`, { method: 'POST' }),
+
+  /** AI proposal for the next message to that user. It fills the composer only. */
+  suggestion: (username: string) =>
+    request<SuggestionResponse>(`/api/ai/suggestion/${encodeURIComponent(username)}`, { method: 'POST' }),
+
+  stats: () => request<AccountStats>('/api/stats/me'),
+
+  settings: () => request<UserSettings>('/api/settings/me'),
+
+  /** null resets the limit to the server default. */
+  updateSettings: (aiMaxTokens: number | null) =>
+    request<UserSettings>('/api/settings/me', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aiMaxTokens }),
+    }),
+
+  /** Sends the stats by email; the server always uses its configured mailbox. */
+  emailStats: () => request<StatsEmailResponse>('/api/stats/me/email', { method: 'POST' }),
 }

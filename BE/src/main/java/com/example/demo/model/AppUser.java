@@ -36,4 +36,11 @@ public class AppUser {
 
 	@Column(nullable = false)
 	private Instant createdAt;
+
+	/**
+	 * max_tokens of each AI suggestion, chosen by the user. Null means the application
+	 * default, so existing rows need no migration.
+	 */
+	@Column(name = "ai_max_tokens")
+	private Integer aiMaxTokens;
 }
